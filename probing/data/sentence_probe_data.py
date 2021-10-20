@@ -496,7 +496,12 @@ class SentenceProberDataset(BaseDataset):
                         else:
                             pieces = self.tokenizer.tokenize(token)
                     else:
-                        pieces = self.tokenizer.tokenize(token)
+                        if len(token) > self.config.tokenize_n_chars:
+                            pieces = self.tokenizer.tokenize(token[:-self.config.tokenize_n_chars])
+                            pieces.extend(f'##{c}' for c in token[-self.config.tokenize_n_chars:])
+                        else:
+                            pieces = [token[0]]
+                            pieces.extend(f'##{c}' for c in token[1:])
                 tokenized.append(pieces)
             # Add [SEP] token start.
             # Perform BOW.

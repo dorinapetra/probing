@@ -54,6 +54,7 @@ class Config:
         'train_base_model': False,
         'remove_diacritics': False,
         'freeze_lstm_encoder': False,
+        'tokenize_n_chars': 0,
     }
     # path variables support environment variable
     # ${MYVAR} will be manually expanded
