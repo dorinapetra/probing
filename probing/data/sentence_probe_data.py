@@ -299,6 +299,10 @@ class SequenceClassificationWithSubwords(BaseDataset):
             self.tokenizer = AutoTokenizer.from_pretrained(
                 config.model_name, do_lower_case=lower)
             globals()[global_key] = self.tokenizer
+        if config.tokenize_n_chars > 0:
+            if not config.model_name.startswith('bert-'):
+                raise ValueError("Last characters tokenization is only "
+                                 "supported for BERT models.")
         super().__init__(config, stream_or_file, max_samples, share_vocabs_with, is_unlabeled)
 
     def load_or_create_vocabs(self):
@@ -344,7 +348,15 @@ class SequenceClassificationWithSubwords(BaseDataset):
             token = fd[0]
             if self.config.remove_diacritics:
                 token = unidecode.unidecode(token)
-            pieces = self.tokenizer.tokenize(token)
+            if self.config.tokenize_n_chars > 0:
+                if len(token) > self.config.tokenize_n_chars:
+                    pieces = self.tokenizer.tokenize(token[:-self.config.tokenize_n_chars])
+                    pieces.extend(f'##{c}' for c in token[-self.config.tokenize_n_chars:])
+                else:
+                    pieces = [token[0]]
+                    pieces.extend(f'##{c}' for c in token[1:])
+            else:
+                pieces = self.tokenizer.tokenize(token)
             subwords.extend(pieces)
         token_starts.append(len(subwords))
         if len(labels) == 0:
@@ -427,6 +439,10 @@ class SentenceProberDataset(BaseDataset):
                 raise ValueError("Character tokenization is only "
                                 "supported for BERT models.")
             logging.info("Using character tokenization.")
+        if config.tokenize_n_chars > 0:
+            if not config.model_name.startswith('bert-'):
+                raise ValueError("Last characters tokenization is only "
+                                 "supported for BERT models.")
         super().__init__(config, stream_or_file, max_samples, share_vocabs_with, is_unlabeled)
 
     def load_or_create_vocabs(self):
@@ -495,13 +511,15 @@ class SentenceProberDataset(BaseDataset):
                             pieces.extend(f'##{c}' for c in token[1:])
                         else:
                             pieces = self.tokenizer.tokenize(token)
-                    else:
+                    elif self.config.tokenize_n_chars > 0:
                         if len(token) > self.config.tokenize_n_chars:
                             pieces = self.tokenizer.tokenize(token[:-self.config.tokenize_n_chars])
                             pieces.extend(f'##{c}' for c in token[-self.config.tokenize_n_chars:])
                         else:
                             pieces = [token[0]]
                             pieces.extend(f'##{c}' for c in token[1:])
+                    else:
+                        pieces = self.tokenizer.tokenize(token)
                 tokenized.append(pieces)
             # Add [SEP] token start.
             # Perform BOW.
