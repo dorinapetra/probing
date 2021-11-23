@@ -55,6 +55,7 @@ class Config:
         'remove_diacritics': False,
         'freeze_lstm_encoder': False,
         'tokenize_n_chars': 0,
+        'right2left_tokenization': False,
     }
     # path variables support environment variable
     # ${MYVAR} will be manually expanded

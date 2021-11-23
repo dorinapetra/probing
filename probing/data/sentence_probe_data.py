@@ -476,6 +476,21 @@ class SentenceProberDataset(BaseDataset):
             batch.token_starts = np.array(padded_token_starts)
             yield batch
 
+    def right2left_tokenize(self, word):
+        if word in self.tokenizer.vocab:
+            return [word]
+        elif len(word) == 1:
+            return ['[UNK]']
+        elif word == '':
+            return []
+
+        tokens = []
+        for i in range(1, len(word)):
+            if f'##{word[i:]}' in self.tokenizer.vocab:
+                tokens.extend(self.right2left_tokenize(word[:i]))
+                tokens.append(f'##{word[i:]}')
+                return tokens
+
     def extract_sample_from_line(self, line):
         fd = line.rstrip("\n").split("\t")
         raw_sent, raw_target, raw_idx = fd[:3]
@@ -518,6 +533,8 @@ class SentenceProberDataset(BaseDataset):
                         else:
                             pieces = [token[0]]
                             pieces.extend(f'##{c}' for c in token[1:])
+                    elif self.config.right2left_tokenization:
+                        pieces = self.right2left_tokenize(token)
                     else:
                         pieces = self.tokenizer.tokenize(token)
                 tokenized.append(pieces)
