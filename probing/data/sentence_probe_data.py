@@ -476,20 +476,36 @@ class SentenceProberDataset(BaseDataset):
             batch.token_starts = np.array(padded_token_starts)
             yield batch
 
-    def right2left_tokenize(self, word):
-        if word in self.tokenizer.vocab:
+    def right2left_tokenize(self, word, vocab):
+        indices = [i for i, c in enumerate(word) if c not in vocab]
+        sublists = []
+        j = 0
+        for i in indices:
+            sublists.append(word[j:i])
+            sublists.append(word[i])
+            j = i + 1
+        sublists.append(word[j:])
+        print(sublists)
+        tokens = []
+        for subword in sublists:
+            tokens.extend(self.tokenize(subword, vocab))
+        return tokens
+
+    def tokenize(self, word, vocab):
+        if word in vocab:
             return [word]
+        elif word == '' or word.isspace():
+            return []
         elif len(word) == 1:
             return ['[UNK]']
-        elif word == '':
-            return []
 
         tokens = []
         for i in range(1, len(word)):
-            if f'##{word[i:]}' in self.tokenizer.vocab:
-                tokens.extend(self.right2left_tokenize(word[:i]))
+            if f'##{word[i:]}' in vocab:
+                tokens.extend(self.tokenize(word[:i], vocab))
                 tokens.append(f'##{word[i:]}')
                 return tokens
+
 
     def extract_sample_from_line(self, line):
         fd = line.rstrip("\n").split("\t")
